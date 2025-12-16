@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHER | 後台控制中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --card: #ffffff;
+            --primary: #1d1d1f;
+            --accent: #007aff;
+            --text: #1d1d1f;
+            --mute: #86868b;
+            --border: #e5e5ea;
+            --shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        body {
+            font-family: 'Inter', system-ui; margin: 0; padding: 40px 20px; 
+            background-color: var(--bg); color: var(--text);
+        }
+        .container {
+            max-width: 1200px; margin: 0 auto;
+        }
+        h1 { font-size: 28px; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
+        .subtitle { font-size: 14px; color: var(--mute); margin-bottom: 30px; }
+        .data-table {
+            width: 100%; border-collapse: collapse; background: var(--card);
+            border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+        }
+        .data-table th, .data-table td {
+            padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .data-table th {
+            background-color: #e8e8e8; color: var(--primary); font-weight: 600;
+            text-transform: uppercase;
+        }
+        .data-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        #loading-status {
+            text-align: center; padding: 50px; color: var(--mute);
+        }
+        .alert {
+            padding: 15px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; 
+            border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+        }
+        .btn-refresh {
+            padding: 10px 20px; background: var(--accent); color: white; border: none; 
+            border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📅 預約數據控制台</h1>
+    <p class="subtitle">AETHER BOOKING | 管理面板 (Management Console)</p>
+
+    <div class="alert">
+        🚨 **安全提醒:** 此面板直接存取您的預約資料。在生產環境中，**強烈建議您為此頁面添加密碼保護或 Google 帳號驗證。**
+    </div>
+
+    <button class="btn-refresh" onclick="fetchBookings()">重新整理數據</button>
+
+    <div id="loading-status">正在從 Google Sheet 載入預約數據...</div>
+    <div id="data-view">
+        </div>
+</div>
+
+<script>
+    // 🔴 🔴 🔴 務必填入您的 Google Apps Script 部署網址 🔴 🔴 🔴
+    const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby-FO85yH9fFSP7W_JHc4YB857m1UyOkwDonHhGnqUTXDB4YAl3URzDqnGdtvGyKOsv/exec"; 
+
+    const statusEl = document.getElementById('loading-status');
+    const dataViewEl = document.getElementById('data-view');
+
+    async function fetchBookings() {
+        statusEl.style.display = 'block';
+        statusEl.innerText = '正在從 Google Sheet 載入預約數據...';
+        dataViewEl.innerHTML = '';
+
+        try {
+            // 使用新的 action=get_all 參數
+            const res = await fetch(`${API_ENDPOINT}?action=get_all`);
+            const result = await res.json();
+
+            if (result.status === 'success') {
+                renderTable(result.headers, result.data);
+                statusEl.style.display = 'none';
+            } else {
+                statusEl.innerText = `載入失敗: ${result.msg}`;
+            }
+        } catch(e) {
+            console.error("連線錯誤:", e);
+            statusEl.innerText = '連線錯誤：無法連線至 GAS 服務。請檢查部署狀態。';
+        }
+    }
+
+    function renderTable(headers, data) {
+        if (data.length === 0) {
+            dataViewEl.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--mute);">🎉 尚無預約記錄！</div>';
+            return;
+        }
+
+        let html = '<table class="data-table"><thead><tr>';
+        
+        // 渲染表頭
+        headers.forEach(header => {
+            html += `<th>${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // 渲染數據行
+        data.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => {
+                // 將日期對象轉換為本地可讀格式
+                let displayCell = cell;
+                if (cell instanceof Array) {
+                    displayCell = cell.join(', ');
+                } else if (cell instanceof Date) {
+                    // 將 Date 對象格式化，確保時區正確 (這裡依賴瀏覽器時區)
+                    displayCell = cell.toLocaleDateString() + ' ' + cell.toLocaleTimeString();
+                } else if (typeof cell === 'string' && cell.startsWith('20')) {
+                    // 嘗試轉換日期字串，防止格式問題
+                    const dateTest = new Date(cell);
+                    if (!isNaN(dateTest)) {
+                        displayCell = dateTest.toLocaleString();
+                    }
+                }
+                
+                html += `<td>${displayCell}</td>`;
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        dataViewEl.innerHTML = html;
+    }
+
+    // 初始化載入
+    fetchBookings();
+</script>
+</body>
+</html>
