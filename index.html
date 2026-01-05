@@ -400,8 +400,8 @@ input:checked + .slider:before { transform: translateX(20px); }
       toast.className = ''; 
       toast.classList.add(type, 'show');
 
-      // 錯誤訊息顯示久一點 (6秒)，一般訊息 (3.5秒)
-      const duration = type === 'error' ? 6000 : 3500;
+      // 錯誤訊息或包含警告符號 ⚠️ 的訊息顯示久一點 (6秒)，一般訊息 (3.5秒)
+      const duration = (type === 'error' || message.includes('⚠️')) ? 6000 : 3500;
 
       setTimeout(() => {
           toast.classList.remove('show');
