@@ -594,7 +594,16 @@ input:checked + .slider:before { transform: translateX(20px); }
             headers: { 'Content-Type': 'text/plain' }
         });
         
-        const result = await res.json();
+        // 先讀取文字，避免 JSON 解析失敗導致無法看到真實錯誤
+        const text = await res.text();
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (err) {
+            console.error("Server returned non-JSON:", text);
+            // 如果回傳的是 HTML (通常是 Google 的錯誤頁面)，代表部署網址錯了或權限不足
+            throw new Error("伺服器回傳格式錯誤。請檢查：1. GAS 是否已部署為新版本？ 2. 部署網址是否正確？");
+        }
         
         if(result.status === 'success') {
             // 使用後端返回的 msg，這個 msg 已經處理了 Email 成功/失敗的兩種情況
@@ -617,7 +626,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     } catch(e) {
         console.error("連線錯誤:", e);
         // 這應為網路故障或 GAS 部署大問題
-        showToast("❌ 網路連線錯誤：無法與伺服器通信。請檢查網路或稍後重試。", 'error'); 
+        showToast("❌ " + (e.message || "網路連線錯誤"), 'error'); 
         closeModal();
         fetchSlots(state.selectedDate);
     }
