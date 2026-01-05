@@ -503,6 +503,7 @@ input:checked + .slider:before { transform: translateX(20px); }
       if(data.status === 'success') {
         renderSlots(data.booked);
       } else {
+        console.error("GAS Error:", data);
         showToast("錯誤：無法取得時段資料。請檢查 GAS 後端配置。", 'error');
         grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--red);">系統錯誤，請聯絡管理員</div>';
       }
