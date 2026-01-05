@@ -505,6 +505,9 @@ input:checked + .slider:before { transform: translateX(20px); }
       
       if(data.status === 'success') {
         renderSlots(data.booked);
+      } else if (data.status === 'holiday') {
+        showToast("📅 本日公休", 'error');
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--red); font-weight:bold; padding:20px;">⛔ 本日公休，請選擇其他日期</div>';
       } else {
         console.error("GAS Error:", data);
         showToast("錯誤：無法取得時段資料。請檢查 GAS 後端配置。", 'error');
@@ -526,7 +529,19 @@ input:checked + .slider:before { transform: translateX(20px); }
         showToast("該日所有時段皆可預約！", 'success');
     }
 
+    // 取得現在時間，用於過濾過去的時段
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const isToday = (state.selectedDate === todayStr);
+    const currentHour = now.getHours();
+
     TIME_SLOTS.forEach(time => {
+      // 如果是今天，且時段早於或等於現在的小時，則跳過不顯示 (例如現在 16:00，則 16:00 及之前的都不能約)
+      if (isToday) {
+          const slotHour = parseInt(time.split(':')[0], 10);
+          if (slotHour <= currentHour) return;
+      }
+
       const btn = document.createElement('div');
       btn.className = 'time-btn';
       btn.innerText = time;
