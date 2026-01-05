@@ -359,7 +359,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   // 🔴 🔴 🔴 務必填入您的 Google Apps Script 部署網址 🔴 🔴 🔴
   const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby-FO85yH9fFSP7W_JHc4YB857m1UyOkwDonHhGnqUTXDB4YAl3URzDqnGdtvGyKOsv/exec"; 
 
-  const TIME_SLOTS = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
+  let TIME_SLOTS = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"]; // 預設值 (若連線失敗時使用)
   
   let state = {
     currentYear: new Date().getFullYear(),
@@ -666,7 +666,21 @@ input:checked + .slider:before { transform: translateX(20px); }
     state.selectedTime = null;
   }
 
-  initCalendar();
+  // 系統初始化：先載入設定，再渲染日曆
+  (async function initSystem() {
+      try {
+          const res = await fetch(`${API_ENDPOINT}?action=get_settings`);
+          const result = await res.json();
+          if(result.status === 'success' && result.time_slots) {
+              // 將字串 "10:00, 11:00" 轉為陣列
+              TIME_SLOTS = result.time_slots.split(',').map(s => s.trim()).filter(s => s);
+          }
+      } catch(e) {
+          console.error("載入設定失敗，使用預設值", e);
+      }
+      
+      initCalendar();
+  })();
 
 </script>
 </body>
